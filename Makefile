@@ -8,6 +8,7 @@ lint_reporter := console
 APPLIANCE_CHANNEL := Unstable
 
 SHIP_NIGHTLY_CHANNEL_ID := CHANGEME
+SHIP_CUSTOMER_ID := CHANGEME
 
 # ship supports ignoring semver so we can probably remove this once that flag is added to CLI. This works fine for now
 SHIP_SEMVER_SNAPSHOT := 0.1.0-SNAPSHOT
@@ -51,6 +52,7 @@ run-local: clean-assets lint-ship
 	    --set-github-contents $(REPO):/scripts:master:$(REPO_PATH) \
 	    --set-channel-icon $(ICON) \
 	    --set-channel-name $(APP_NAME) \
+	    --customer-id $(SHIP_CUSTOMER_ID) \
 	    --log-level=off
 	@$(MAKE) print-generated-assets
 
@@ -61,6 +63,7 @@ run-local-headless: clean-assets lint-ship
 	    --runbook $(REPO_PATH)/ship.yaml  \
 	    --set-github-contents $(REPO):/base:master:$(REPO_PATH) \
 	    --set-github-contents $(REPO):/scripts:master:$(REPO_PATH) \
+	    --customer-id $(SHIP_CUSTOMER_ID) \
 	    --headless \
 	    --log-level=error
 	@$(MAKE) print-generated-assets
@@ -70,9 +73,9 @@ release-appliance: clean-assets lint-appliance deps-vendor-cli
 	cat replicated.yaml tmp/k8s.yaml | deps/replicated release create --promote $(APPLIANCE_CHANNEL) --yaml -
 
 release-ship: clean-assets lint-ship deps-vendor-cli
-	@deps/replicated shiprelease create \
+	deps/replicated shiprelease create \
 	    --vendor-token ${REPLICATED_API_TOKEN} \
-	    --channel-id $(SHIP_CHANNEL_ID) \
+	    --channel-id $(SHIP_NIGHTLY_CHANNEL_ID) \
 	    --spec-file ./ship.yaml \
 	    --semver $(SHIP_SEMVER_SNAPSHOT) \
 	    --release-notes $(RELEASE_NOTES)
@@ -98,3 +101,8 @@ print-generated-assets:
 	@sleep .5
 	@find tmp -maxdepth 3 -type file
 
+create-entitlement-spec:
+	go run ./tmp-client-entitlements  create-spec  --spec-name=fake --spec-file=./entitlements.yaml
+
+set-entitlement-value:
+	go run ./tmp-client-entitlements  set-value  --spec-id=... --key=num_seats --value=30 --customer-id=...
